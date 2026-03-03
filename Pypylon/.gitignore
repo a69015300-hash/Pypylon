@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+*.egg
+
+# 虛擬環境
+venv/
+.env/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 模型檔案（太大不適合放 Git）
+*.pt
+*.pth
+*.onnx
+*.weights
+
+# DXF 輸出
+*.dxf
+
+# 暫存
+*.tmp
+*.bak
+
+# OS
+.DS_Store
+Thumbs.db
+
+# 環境變數
+.env
