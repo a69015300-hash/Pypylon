@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>影像處理系統</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1a1a2e;
+            color: #eee;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+            color: #00d4ff;
+            margin-bottom: 20px;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 20px;
+            height: calc(100vh - 100px);
+        }
+        .controls {
+            overflow-y: auto;
+            padding-right: 10px;
+        }
+        .controls::-webkit-scrollbar { width: 6px; }
+        .controls::-webkit-scrollbar-track { background: #1a1a2e; border-radius: 3px; }
+        .controls::-webkit-scrollbar-thumb { background: #0f3460; border-radius: 3px; }
+        .controls::-webkit-scrollbar-thumb:hover { background: #00d4ff; }
+        .main-content {
+            overflow-y: auto;
+            padding-right: 10px;
+        }
+        .main-content::-webkit-scrollbar { width: 6px; }
+        .main-content::-webkit-scrollbar-track { background: #1a1a2e; border-radius: 3px; }
+        .main-content::-webkit-scrollbar-thumb { background: #0f3460; border-radius: 3px; }
+        .main-content::-webkit-scrollbar-thumb:hover { background: #00d4ff; }
+        .panel {
+            background: #16213e;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        .panel h3 {
+            color: #00d4ff;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #0f3460;
+        }
+        .form-group {
+            margin-bottom: 12px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #aaa;
+            font-size: 13px;
+        }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 8px 10px;
+            border: 1px solid #0f3460;
+            border-radius: 5px;
+            background: #1a1a2e;
+            color: #eee;
+            font-size: 14px;
+        }
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #00d4ff;
+        }
+        .btn {
+            width: 100%;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        .btn-primary { background: #00d4ff; color: #1a1a2e; }
+        .btn-primary:hover { background: #00a8cc; }
+        .btn-success { background: #00c853; color: #fff; }
+        .btn-success:hover { background: #00a844; }
+        .btn-warning { background: #ff9800; color: #1a1a2e; }
+        .btn-warning:hover { background: #e68900; }
+        .btn:disabled { background: #555; cursor: not-allowed; }
+        .status {
+            margin-top: 10px;
+            padding: 8px;
+            border-radius: 5px;
+            font-size: 12px;
+            display: none;
+        }
+        .status.show { display: block; }
+        .status.success { background: #1b5e20; color: #a5d6a7; }
+        .status.error { background: #b71c1c; color: #ffcdd2; }
+        .status.info { background: #0d47a1; color: #90caf9; }
+        .image-container {
+            background: #0f0f1a;
+            border-radius: 10px;
+            padding: 15px;
+            min-height: 400px;
+            display: flex;
+            flex-direction: column;
+        }
+        .image-container h3 { color: #00d4ff; margin-bottom: 15px; }
+        .image-display {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #1a1a2e;
+            border-radius: 5px;
+            overflow: hidden;
+            min-height: 300px;
+        }
+        .image-display img {
+            max-width: 100%;
+            max-height: 500px;
+            object-fit: contain;
+        }
+        .image-display .placeholder { color: #555; font-size: 14px; }
+        .info-bar {
+            margin-top: 10px;
+            padding: 10px;
+            background: #16213e;
+            border-radius: 5px;
+            font-size: 12px;
+        }
+        .info-bar .label { color: #888; }
+        .info-bar .value { color: #00d4ff; word-break: break-all; }
+        .results-panel {
+            background: #16213e;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+        .results-panel h3 { color: #00d4ff; margin-bottom: 10px; }
+        .results-content {
+            background: #1a1a2e;
+            border-radius: 5px;
+            padding: 10px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+        }
+        .pipeline {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+        .pipeline-step {
+            background: #0f3460;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 11px;
+            color: #888;
+        }
+        .pipeline-step.active { background: #00d4ff; color: #1a1a2e; }
+        .pipeline-arrow { color: #555; }
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .checkbox-group input[type="checkbox"] { width: auto; }
+        /* 上傳拖放區域 */
+        .upload-area {
+            border: 2px dashed #0f3460;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 12px;
+        }
+        .upload-area:hover, .upload-area.dragover {
+            border-color: #00d4ff;
+            background: rgba(0, 212, 255, 0.05);
+        }
+        .upload-area p { color: #888; font-size: 13px; margin-top: 8px; }
+        .upload-area .icon { font-size: 32px; color: #0f3460; }
+        .upload-area.dragover .icon { color: #00d4ff; }
+        /* 分頁樣式 */
+        .tabs {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 15px;
+        }
+        .tab-btn {
+            flex: 1;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 8px 8px 0 0;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            background: #0f3460;
+            color: #888;
+            transition: all 0.3s;
+        }
+        .tab-btn:hover { background: #1a4a7a; color: #aaa; }
+        .tab-btn.active { background: #16213e; color: #00d4ff; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+                height: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>影像處理系統</h1>
+
+    <div class="container">
+        <div class="controls">
+            <!-- 分頁按鈕 -->
+            <div class="tabs">
+                <button class="tab-btn active" onclick="switchTab('function')">功能</button>
+                <button class="tab-btn" onclick="switchTab('calibration')">校正</button>
+            </div>
+
+            <!-- 功能分頁 -->
+            <div id="tab-function" class="tab-content active">
+            <!-- 上傳圖片 -->
+            <div class="panel">
+                <h3>1. 上傳圖片</h3>
+                <div class="upload-area" id="upload-area"
+                     ondragover="handleDragOver(event)"
+                     ondragleave="handleDragLeave(event)"
+                     ondrop="handleDrop(event)"
+                     onclick="document.getElementById('file-input').click()">
+                    <div class="icon">&#128247;</div>
+                    <p>點擊選擇圖片或拖放至此處<br>支援 JPG / PNG / BMP / TIFF</p>
+                </div>
+                <input type="file" id="file-input" accept="image/*" style="display:none" onchange="uploadFile(this.files[0])">
+                <div id="upload-status" class="status"></div>
+            </div>
+
+            <!-- 二值化 -->
+            <div class="panel">
+                <h3>2. 二值化</h3>
+                <div class="form-group">
+                    <label>閾值 (thresh)</label>
+                    <input type="number" id="threshold-thresh" value="10" min="0" max="255">
+                </div>
+                <div class="form-group">
+                    <label>最大值 (maxval)</label>
+                    <input type="number" id="threshold-maxval" value="255" min="0" max="255">
+                </div>
+                <div class="form-group">
+                    <label>類型 (type)</label>
+                    <select id="threshold-type">
+                        <option value="0">0 - BINARY</option>
+                        <option value="1">1 - BINARY_INV</option>
+                        <option value="2">2 - TRUNC</option>
+                        <option value="3">3 - TOZERO</option>
+                        <option value="4">4 - TOZERO_INV</option>
+                        <option value="8">8 - OTSU</option>
+                        <option value="16">16 - TRIANGLE</option>
+                    </select>
+                </div>
+                <button class="btn btn-primary" onclick="applyThreshold()" id="btn-threshold" disabled>二值化</button>
+                <div id="threshold-status" class="status"></div>
+            </div>
+
+            <!-- 侵蝕 -->
+            <div class="panel">
+                <h3>3. 侵蝕 (可選)</h3>
+                <div class="form-group">
+                    <label>核心大小</label>
+                    <input type="number" id="erode-kernel" value="11" min="1" step="2">
+                </div>
+                <div class="form-group">
+                    <label>迭代次數</label>
+                    <input type="number" id="erode-iterations" value="1" min="1">
+                </div>
+                <button class="btn btn-warning" onclick="applyErode()" id="btn-erode" disabled>侵蝕</button>
+                <div id="erode-status" class="status"></div>
+            </div>
+
+            <!-- 連通元件分析 -->
+            <div class="panel">
+                <h3>4. 連通元件分析</h3>
+                <div class="form-group">
+                    <label>最小面積 (像素)</label>
+                    <input type="number" id="cc-min-area" value="20">
+                </div>
+                <div class="form-group">
+                    <label>最大面積 (像素)</label>
+                    <input type="number" id="cc-max-area" value="300000">
+                </div>
+                <div class="form-group checkbox-group">
+                    <input type="checkbox" id="cc-draw-contours">
+                    <label for="cc-draw-contours" style="margin: 0;">繪製輪廓線</label>
+                </div>
+                <button class="btn btn-primary" onclick="analyzeComponents()" id="btn-cc" disabled>分析</button>
+                <div id="cc-status" class="status"></div>
+            </div>
+
+            <!-- 輸出 DXF -->
+            <div class="panel">
+                <h3>5. 輸出 DXF</h3>
+                <div class="form-group">
+                    <label>縮放比例 (1px = ? mm)</label>
+                    <input type="number" id="dxf-scale" value="0.00274" step="0.00001">
+                </div>
+                <div class="form-group">
+                    <label>簡化比例 (eps_ratio)</label>
+                    <input type="number" id="dxf-eps" value="0.002" step="0.001">
+                </div>
+                <div class="form-group">
+                    <label>檔案名稱</label>
+                    <input type="text" id="dxf-filename" value="output.dxf">
+                </div>
+                <button class="btn btn-success" onclick="exportDxf()" id="btn-dxf" disabled>下載 DXF</button>
+                <div id="dxf-status" class="status"></div>
+            </div>
+            </div>
+
+            <!-- 校正分頁 -->
+            <div id="tab-calibration" class="tab-content">
+            <div class="panel">
+                <h3>9 點校正說明</h3>
+                <p style="color: #aaa; font-size: 12px; line-height: 1.6;">
+                    1. 在「功能」分頁上傳圖片並執行連通分析<br>
+                    2. 回到此分頁，輸入手臂座標後點擊「新增校正點」<br>
+                    3. 收集完 9 個點位後，點擊「計算校正」<br>
+                    4. 完成後可使用「座標轉換」功能
+                </p>
+            </div>
+
+            <div class="panel">
+                <h3>校正狀態</h3>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <span>已收集點位: <span id="calib-point-count" style="color: #00d4ff; font-weight: bold;">0</span> / 9</span>
+                    <span id="calib-status-badge" style="padding: 3px 10px; border-radius: 10px; font-size: 12px; background: #b71c1c; color: #fff;">未校正</span>
+                </div>
+                <div class="progress-bar" style="height: 8px; background: #0f3460; border-radius: 4px; overflow: hidden;">
+                    <div id="calib-progress" style="height: 100%; width: 0%; background: #00d4ff; transition: width 0.3s;"></div>
+                </div>
+                <div id="calib-error" style="margin-top: 10px; font-size: 12px; color: #888; display: none;">
+                    校正誤差 RMSE: <span id="calib-rmse">-</span> mm
+                </div>
+            </div>
+
+            <div class="panel">
+                <h3>新增校正點</h3>
+                <p style="color: #888; font-size: 11px; margin-bottom: 10px;">
+                    像素座標將自動從連通分析的輪廓中心抓取
+                </p>
+                <div class="form-group">
+                    <label>輪廓索引 (從 0 開始)</label>
+                    <input type="number" id="calib-contour-index" value="0" min="0">
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <div class="form-group">
+                        <label>手臂座標 X (mm)</label>
+                        <input type="number" id="calib-robot-x" step="0.01" placeholder="從手臂面板讀取">
+                    </div>
+                    <div class="form-group">
+                        <label>手臂座標 Y (mm)</label>
+                        <input type="number" id="calib-robot-y" step="0.01" placeholder="從手臂面板讀取">
+                    </div>
+                </div>
+                <button class="btn btn-primary" onclick="addCalibrationPoint()" id="btn-add-calib" disabled>新增校正點</button>
+                <div id="add-calib-status" class="status"></div>
+            </div>
+
+            <div class="panel">
+                <h3>已收集點位</h3>
+                <div id="calib-points-list" style="max-height: 200px; overflow-y: auto; font-size: 12px;">
+                    <p style="color: #666;">尚無點位資料</p>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h3>校正操作</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <button class="btn btn-success" onclick="calculateCalibration()" id="btn-calc-calib" disabled>計算校正</button>
+                    <button class="btn btn-warning" onclick="resetCalibration()">重置校正</button>
+                </div>
+                <div id="calc-calib-status" class="status"></div>
+            </div>
+
+            <div class="panel">
+                <h3>座標轉換</h3>
+                <p style="color: #888; font-size: 11px; margin-bottom: 10px;">
+                    校正完成後，可將輪廓中心轉換為手臂座標
+                </p>
+                <button class="btn btn-primary" onclick="transformAllContours()" id="btn-transform" disabled>轉換所有輪廓</button>
+                <div id="transform-status" class="status"></div>
+                <div id="transform-results" class="results-content" style="max-height: 200px; margin-top: 10px; display: none;"></div>
+            </div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <!-- 流程指示 -->
+            <div class="pipeline">
+                <span class="pipeline-step" id="step-upload">上傳</span>
+                <span class="pipeline-arrow">&rarr;</span>
+                <span class="pipeline-step" id="step-threshold">二值化</span>
+                <span class="pipeline-arrow">&rarr;</span>
+                <span class="pipeline-step" id="step-erode">侵蝕</span>
+                <span class="pipeline-arrow">&rarr;</span>
+                <span class="pipeline-step" id="step-cc">連通分析</span>
+                <span class="pipeline-arrow">&rarr;</span>
+                <span class="pipeline-step" id="step-dxf">DXF</span>
+            </div>
+
+            <!-- 圖片顯示 -->
+            <div class="image-container">
+                <h3>影像預覽</h3>
+                <div class="image-display">
+                    <img id="preview-image" style="display: none;">
+                    <span class="placeholder" id="preview-placeholder">尚無影像 - 請上傳圖片</span>
+                </div>
+                <div class="info-bar">
+                    <div><span class="label">Image ID: </span><span class="value" id="current-image-id">-</span></div>
+                    <div><span class="label">Contours ID: </span><span class="value" id="current-contours-id">-</span></div>
+                </div>
+            </div>
+
+            <!-- 結果顯示 -->
+            <div class="results-panel">
+                <h3>分析結果</h3>
+                <div class="results-content" id="results-content">等待操作...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = window.location.origin;
+
+        // 分頁切換
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            document.getElementById('tab-' + tabName).classList.add('active');
+        }
+
+        // 每個步驟的 image_id
+        let uploadImageId = null;
+        let uploadImageUrl = null;
+        let thresholdImageId = null;
+        let thresholdImageUrl = null;
+        let erodeImageId = null;
+        let erodeImageUrl = null;
+        let ccImageId = null;
+        let ccImageUrl = null;
+        let currentContoursId = null;
+
+        function showStatus(elementId, message, type) {
+            const el = document.getElementById(elementId);
+            el.textContent = message;
+            el.className = `status show ${type}`;
+        }
+
+        function setStep(stepId) {
+            document.querySelectorAll('.pipeline-step').forEach(el => el.classList.remove('active'));
+            if (stepId) document.getElementById(stepId).classList.add('active');
+        }
+
+        function updateImage(imageUrl, imageId) {
+            const img = document.getElementById('preview-image');
+            const placeholder = document.getElementById('preview-placeholder');
+            img.src = imageUrl + '?t=' + Date.now();
+            img.style.display = 'block';
+            placeholder.style.display = 'none';
+            document.getElementById('current-image-id').textContent = imageId || '-';
+        }
+
+        function updateContoursId(contoursId) {
+            currentContoursId = contoursId;
+            document.getElementById('current-contours-id').textContent = contoursId || '-';
+        }
+
+        function updateResults(data) {
+            document.getElementById('results-content').textContent = JSON.stringify(data, null, 2);
+        }
+
+        function enableButton(id, enabled) {
+            const el = document.getElementById(id);
+            if (el) el.disabled = !enabled;
+        }
+
+        // ── 拖放上傳 ──
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.currentTarget.classList.add('dragover');
+        }
+        function handleDragLeave(e) {
+            e.currentTarget.classList.remove('dragover');
+        }
+        function handleDrop(e) {
+            e.preventDefault();
+            e.currentTarget.classList.remove('dragover');
+            if (e.dataTransfer.files.length > 0) {
+                uploadFile(e.dataTransfer.files[0]);
+            }
+        }
+
+        async function uploadFile(file) {
+            if (!file) return;
+            showStatus('upload-status', '上傳中...', 'info');
+            setStep('step-upload');
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const res = await fetch(`${API_BASE}/image/upload`, {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await res.json();
+
+                if (res.ok) {
+                    uploadImageId = data.image_id;
+                    uploadImageUrl = data.image_url;
+                    thresholdImageId = null;
+                    erodeImageId = null;
+                    ccImageId = null;
+                    currentContoursId = null;
+
+                    updateImage(data.image_url, data.image_id);
+                    updateContoursId(null);
+                    showStatus('upload-status', `上傳成功: ${data.filename} (${data.width}x${data.height})`, 'success');
+                    updateResults(data);
+
+                    enableButton('btn-threshold', true);
+                    enableButton('btn-erode', false);
+                    enableButton('btn-cc', false);
+                    enableButton('btn-dxf', false);
+                    enableButton('btn-add-calib', false);
+                } else {
+                    showStatus('upload-status', data.detail || '上傳失敗', 'error');
+                }
+            } catch (e) {
+                showStatus('upload-status', '錯誤: ' + e.message, 'error');
+            }
+        }
+
+        async function applyThreshold() {
+            if (!uploadImageId) {
+                showStatus('threshold-status', '請先上傳圖片', 'error');
+                return;
+            }
+            const thresh = document.getElementById('threshold-thresh').value;
+            const maxval = document.getElementById('threshold-maxval').value;
+            const type = document.getElementById('threshold-type').value;
+
+            showStatus('threshold-status', '處理中...', 'info');
+            setStep('step-threshold');
+
+            try {
+                const res = await fetch(
+                    `${API_BASE}/image/threshold?image_id=${uploadImageId}&thresh=${thresh}&maxval=${maxval}&type=${type}`,
+                    { method: 'POST' }
+                );
+                const data = await res.json();
+
+                if (res.ok) {
+                    thresholdImageId = data.image_id;
+                    thresholdImageUrl = data.image_url;
+                    erodeImageId = null;
+                    ccImageId = null;
+                    currentContoursId = null;
+
+                    updateImage(data.image_url, data.image_id);
+                    showStatus('threshold-status', '二值化完成', 'success');
+                    updateResults(data);
+
+                    enableButton('btn-erode', true);
+                    enableButton('btn-cc', true);
+                    enableButton('btn-dxf', false);
+                    enableButton('btn-add-calib', false);
+                } else {
+                    showStatus('threshold-status', data.detail || '處理失敗', 'error');
+                }
+            } catch (e) {
+                showStatus('threshold-status', '錯誤: ' + e.message, 'error');
+            }
+        }
+
+        async function applyErode() {
+            if (!thresholdImageId) {
+                showStatus('erode-status', '請先進行二值化', 'error');
+                return;
+            }
+            const kernel = document.getElementById('erode-kernel').value;
+            const iterations = document.getElementById('erode-iterations').value;
+
+            showStatus('erode-status', '處理中...', 'info');
+            setStep('step-erode');
+
+            try {
+                const res = await fetch(
+                    `${API_BASE}/image/erode?image_id=${thresholdImageId}&kernel_size=${kernel}&iterations=${iterations}`,
+                    { method: 'POST' }
+                );
+                const data = await res.json();
+
+                if (res.ok) {
+                    erodeImageId = data.image_id;
+                    erodeImageUrl = data.image_url;
+                    ccImageId = null;
+                    currentContoursId = null;
+
+                    updateImage(data.image_url, data.image_id);
+                    showStatus('erode-status', '侵蝕完成', 'success');
+                    updateResults(data);
+
+                    enableButton('btn-cc', true);
+                    enableButton('btn-dxf', false);
+                    enableButton('btn-add-calib', false);
+                } else {
+                    showStatus('erode-status', data.detail || '處理失敗', 'error');
+                }
+            } catch (e) {
+                showStatus('erode-status', '錯誤: ' + e.message, 'error');
+            }
+        }
+
+        async function analyzeComponents() {
+            const inputImageId = erodeImageId || thresholdImageId;
+            if (!inputImageId) {
+                showStatus('cc-status', '請先進行二值化', 'error');
+                return;
+            }
+            const minArea = document.getElementById('cc-min-area').value;
+            const maxArea = document.getElementById('cc-max-area').value;
+            const drawContours = document.getElementById('cc-draw-contours').checked;
+
+            showStatus('cc-status', '分析中...', 'info');
+            setStep('step-cc');
+
+            try {
+                const res = await fetch(
+                    `${API_BASE}/image/connected-components?image_id=${inputImageId}&min_area=${minArea}&max_area=${maxArea}&draw_contours=${drawContours}`,
+                    { method: 'POST' }
+                );
+                const data = await res.json();
+
+                if (res.ok) {
+                    ccImageId = data.image_id;
+                    ccImageUrl = data.image_url;
+                    currentContoursId = data.contours_id;
+
+                    updateImage(data.image_url, data.image_id);
+                    updateContoursId(data.contours_id);
+                    showStatus('cc-status', `找到 ${data.contour_count} 個輪廓`, 'success');
+                    updateResults(data);
+
+                    enableButton('btn-dxf', true);
+                    enableButton('btn-add-calib', true);
+                } else {
+                    showStatus('cc-status', data.detail || '分析失敗', 'error');
+                }
+            } catch (e) {
+                showStatus('cc-status', '錯誤: ' + e.message, 'error');
+            }
+        }
+
+        async function exportDxf() {
+            if (!currentContoursId) {
+                showStatus('dxf-status', '請先進行連通分析', 'error');
+                return;
+            }
+            const scale = document.getElementById('dxf-scale').value;
+            const eps = document.getElementById('dxf-eps').value;
+            const filename = document.getElementById('dxf-filename').value;
+
+            showStatus('dxf-status', '產生中...', 'info');
+            setStep('step-dxf');
+
+            try {
+                const res = await fetch(
+                    `${API_BASE}/export/dxf?contours_id=${currentContoursId}&scale=${scale}&eps_ratio=${eps}&filename=${encodeURIComponent(filename)}`,
+                    { method: 'POST' }
+                );
+                if (res.ok) {
+                    const blob = await res.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    a.remove();
+                    showStatus('dxf-status', '下載完成', 'success');
+                } else {
+                    const data = await res.json();
+                    showStatus('dxf-status', data.detail || '匯出失敗', 'error');
+                }
+            } catch (e) {
+                showStatus('dxf-status', '錯誤: ' + e.message, 'error');
+            }
+        }
+
+        // ══════════════════════════════════════════════════════════════════════
+        // 9 點校正功能
+        // ══════════════════════════════════════════════════════════════════════
+
+        let calibrationData = { points: [], calibrated: false };
+
+        async function loadCalibrationStatus() {
+            try {
+                const res = await fetch(`${API_BASE}/calibration/status`);
+                const data = await res.json();
+                calibrationData.points = data.points;
+                calibrationData.calibrated = data.calibrated;
+                updateCalibrationUI(data);
+            } catch (e) {
+                console.log('校正端點未啟用');
+            }
+        }
+
+        function updateCalibrationUI(data) {
+            document.getElementById('calib-point-count').textContent = data.point_count;
+            const progress = (data.point_count / 9) * 100;
+            document.getElementById('calib-progress').style.width = progress + '%';
+
+            const badge = document.getElementById('calib-status-badge');
+            if (data.calibrated) {
+                badge.textContent = '已校正';
+                badge.style.background = '#1b5e20';
+            } else if (data.point_count >= 3) {
+                badge.textContent = '可校正';
+                badge.style.background = '#e65100';
+            } else {
+                badge.textContent = '未校正';
+                badge.style.background = '#b71c1c';
+            }
+
+            const errorDiv = document.getElementById('calib-error');
+            if (data.error) {
+                errorDiv.style.display = 'block';
+                document.getElementById('calib-rmse').textContent = data.error.rmse;
+            } else {
+                errorDiv.style.display = 'none';
+            }
+
+            const listDiv = document.getElementById('calib-points-list');
+            if (data.points && data.points.length > 0) {
+                let html = '<table style="width: 100%; border-collapse: collapse;">';
+                html += '<tr style="color: #888; border-bottom: 1px solid #0f3460;"><th>#</th><th>像素</th><th>手臂</th><th></th></tr>';
+                data.points.forEach(p => {
+                    html += `<tr style="border-bottom: 1px solid #0f3460;">`;
+                    html += `<td style="padding: 5px; color: #00d4ff;">${p.index}</td>`;
+                    html += `<td style="padding: 5px;">(${p.pixel.x.toFixed(1)}, ${p.pixel.y.toFixed(1)})</td>`;
+                    html += `<td style="padding: 5px;">(${p.robot.x}, ${p.robot.y})</td>`;
+                    html += `<td style="padding: 5px;"><button onclick="removeCalibrationPoint(${p.index})" style="background: #b71c1c; color: white; border: none; padding: 2px 8px; border-radius: 3px; cursor: pointer; font-size: 11px;">刪除</button></td>`;
+                    html += '</tr>';
+                });
+                html += '</table>';
+                listDiv.innerHTML = html;
+            } else {
+                listDiv.innerHTML = '<p style="color: #666;">尚無點位資料</p>';
+            }
+
+            enableButton('btn-calc-calib', data.point_count >= 3);
+            enableButton('btn-transform', data.calibrated);
+        }
+
+        async function addCalibrationPoint() {
+            if (!currentContoursId) {
+                showStatus('add-calib-status', '請先在「功能」分頁完成連通分析', 'error');
+                return;
+            }
+            const contourIndex = document.getElementById('calib-contour-index').value;
+            const robotX = document.getElementById('calib-robot-x').value;
+            const robotY = document.getElementById('calib-robot-y').value;
+            if (!robotX || !robotY) {
+                showStatus('add-calib-status', '請輸入手臂座標', 'error');
+                return;
+            }
+            showStatus('add-calib-status', '新增中...', 'info');
+            try {
+                const res = await fetch(
+                    `${API_BASE}/calibration/add-point-from-contour?contours_id=${currentContoursId}&contour_index=${contourIndex}&robot_x=${robotX}&robot_y=${robotY}`,
+                    { method: 'POST' }
+                );
+                const data = await res.json();
+                if (res.ok) {
+                    showStatus('add-calib-status', data.message, 'success');
+                    document.getElementById('calib-robot-x').value = '';
+                    document.getElementById('calib-robot-y').value = '';
+                    loadCalibrationStatus();
+                } else {
+                    showStatus('add-calib-status', data.detail || '新增失敗', 'error');
+                }
+            } catch (e) {
+                showStatus('add-calib-status', '錯誤: ' + e.message, 'error');
+            }
+        }
+
+        async function removeCalibrationPoint(index) {
+            if (!confirm(`確定要刪除第 ${index} 個校正點？`)) return;
+            try {
+                const res = await fetch(`${API_BASE}/calibration/remove-point?index=${index}`, { method: 'DELETE' });
+                if (res.ok) loadCalibrationStatus();
+                else { const data = await res.json(); alert(data.detail || '刪除失敗'); }
+            } catch (e) { alert('錯誤: ' + e.message); }
+        }
+
+        async function calculateCalibration() {
+            showStatus('calc-calib-status', '計算中...', 'info');
+            try {
+                const res = await fetch(`${API_BASE}/calibration/calculate`, { method: 'POST' });
+                const data = await res.json();
+                if (res.ok) {
+                    showStatus('calc-calib-status', `校正完成！誤差 RMSE: ${data.error.rmse} mm`, 'success');
+                    loadCalibrationStatus();
+                } else {
+                    showStatus('calc-calib-status', data.detail || '校正失敗', 'error');
+                }
+            } catch (e) { showStatus('calc-calib-status', '錯誤: ' + e.message, 'error'); }
+        }
+
+        async function resetCalibration() {
+            if (!confirm('確定要重置所有校正資料？')) return;
+            try {
+                const res = await fetch(`${API_BASE}/calibration/reset`, { method: 'POST' });
+                if (res.ok) {
+                    showStatus('calc-calib-status', '校正資料已重置', 'success');
+                    loadCalibrationStatus();
+                }
+            } catch (e) { showStatus('calc-calib-status', '錯誤: ' + e.message, 'error'); }
+        }
+
+        async function transformAllContours() {
+            if (!currentContoursId) {
+                showStatus('transform-status', '請先在「功能」分頁完成連通分析', 'error');
+                return;
+            }
+            showStatus('transform-status', '轉換中...', 'info');
+            try {
+                const res = await fetch(
+                    `${API_BASE}/calibration/transform-all-contours?contours_id=${currentContoursId}`,
+                    { method: 'POST' }
+                );
+                const data = await res.json();
+                if (res.ok) {
+                    showStatus('transform-status', `已轉換 ${data.count} 個輪廓`, 'success');
+                    const resultsDiv = document.getElementById('transform-results');
+                    resultsDiv.style.display = 'block';
+                    let html = '';
+                    data.centers.forEach((c, i) => {
+                        html += `【輪廓 ${c.index}】\n`;
+                        html += `  像素: (${c.pixel.x}, ${c.pixel.y})\n`;
+                        html += `  手臂: (${c.robot.x} mm, ${c.robot.y} mm)\n\n`;
+                    });
+                    resultsDiv.textContent = html || '無資料';
+                } else {
+                    showStatus('transform-status', data.detail || '轉換失敗', 'error');
+                }
+            } catch (e) { showStatus('transform-status', '錯誤: ' + e.message, 'error'); }
+        }
+
+        // 頁面載入完成後初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            loadCalibrationStatus();
+        });
+    </script>
+</body>
+</html>

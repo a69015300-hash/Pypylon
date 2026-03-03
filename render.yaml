@@ -3,7 +3,7 @@ services:
     name: vision-mcp-api
     runtime: python
     buildCommand: pip install -r requirements.txt
-    startCommand: python -m uvicorn Pypylon.test_MCP:app --host 0.0.0.0
+    startCommand: uvicorn test_MCP:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: PYTHON_VERSION
         value: "3.11"
